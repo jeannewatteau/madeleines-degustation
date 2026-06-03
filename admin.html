@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Résultats — Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f4f0; color: #1a1a18; min-height: 100vh; padding: 2rem 1rem; }
+    .container { max-width: 780px; margin: 0 auto; }
+    h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+    .sub { font-size: 14px; color: #666; margin-bottom: 2rem; }
+    .login-card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 2rem; max-width: 360px; margin: 4rem auto; }
+    .login-card h2 { font-size: 18px; font-weight: 500; margin-bottom: 1.5rem; }
+    input[type=password] { width: 100%; padding: 8px 12px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 14px; margin-bottom: 12px; background: #fafafa; }
+    input[type=password]:focus { outline: none; border-color: #185FA5; }
+    .btn { width: 100%; padding: 10px; background: #1a1a18; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .btn:hover { background: #333; }
+    .btn-sm { padding: 6px 14px; width: auto; font-size: 13px; border-radius: 6px; }
+    .btn-outline { background: transparent; color: #1a1a18; border: 0.5px solid #ccc; }
+    .btn-outline:hover { background: #f0f0ee; }
+    #login-error { color: #c0392b; font-size: 13px; margin-top: 6px; min-height: 16px; }
+    #admin-view { display: none; }
+    .section { margin-bottom: 2rem; }
+    .section-title { font-size: 12px; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; border-bottom: 0.5px solid #e0e0dc; padding-bottom: 8px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+    .stat-card { background: #f0f0ee; border-radius: 8px; padding: 12px 14px; }
+    .stat-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .stat-val { font-size: 22px; font-weight: 500; }
+    .card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 1.25rem; }
+    table.rt { width: 100%; font-size: 12px; border-collapse: collapse; overflow-x: auto; display: block; }
+    table.rt th { font-weight: 500; color: #888; text-align: left; padding: 5px 8px; border-bottom: 0.5px solid #e0e0dc; white-space: nowrap; }
+    table.rt td { padding: 5px 8px; border-bottom: 0.5px solid #f0f0ee; white-space: nowrap; }
+    .avg-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+    .avg-table th { font-weight: 500; color: #888; text-align: left; padding: 7px 10px; border-bottom: 0.5px solid #e0e0dc; }
+    .avg-table td { padding: 7px 10px; border-bottom: 0.5px solid #f0f0ee; }
+    .diff-pos { color: #185FA5; font-weight: 500; }
+    .diff-neg { color: #D85A30; font-weight: 500; }
+    .legend { display: flex; gap: 16px; font-size: 12px; color: #666; margin-top: 10px; justify-content: center; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .toolbar { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .empty { font-size: 13px; color: #888; padding: 1rem 0; }
+    .loading { font-size: 13px; color: #888; padding: 1rem 0; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div id="login-view">
+    <div class="login-card">
+      <h2>Espace résultats</h2>
+      <input type="password" id="pwd-input" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')checkPwd()" />
+      <button class="btn" onclick="checkPwd()">Accéder</button>
+      <div id="login-error"></div>
+    </div>
+  </div>
+
+  <div id="admin-view">
+    <div class="toolbar">
+      <div>
+        <h1>Résultats de dégustation</h1>
+        <p class="sub">Tableau de bord animateur</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-outline" onclick="loadData()">↻ Actualiser</button>
+        <button class="btn btn-sm btn-outline" onclick="exportCSV()">Exporter CSV</button>
+        <button class="btn btn-sm btn-outline" onclick="logout()">Déconnexion</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Dégustateurs</div><div class="stat-val" id="stat-count">—</div></div>
+      <div class="stat-card"><div class="stat-label">Madeleine A · moy. globale</div><div class="stat-val" id="stat-a">—</div></div>
+      <div class="stat-card"><div class="stat-label">Madeleine B · moy. globale</div><div class="stat-val" id="stat-b">—</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Profil en araignée — Moyennes</div>
+      <div class="card">
+        <div style="position:relative;width:100%;height:340px">
+          <canvas id="spiderChart" role="img" aria-label="Profil araignée comparant les deux madeleines sur 6 critères">Données des deux madeleines sur 6 critères.</canvas>
+        </div>
+        <div class="legend">
+          <span><span class="dot" style="background:#185FA5"></span>Madeleine A</span>
+          <span><span class="dot" style="background:#D85A30"></span>Madeleine B</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Moyennes par critère</div>
+      <div class="card">
+        <div id="avg-table-wrap"><p class="loading">Chargement...</p></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Détail — toutes les notes</div>
+      <div class="card">
+        <div id="detail-table"><p class="loading">Chargement...</p></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const SUPABASE_URL = 'https://ohlzwcpynlsulpjpqbty.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Air1j1x1dmrpDu3EWVAXcw_q_oklMFI';
+const ADMIN_PWD   = 'Franuigoo44100';
+
+const CRITERIA = [
+  { key: 'coloration',   label: 'Coloration de surface' },
+  { key: 'moelleux',     label: 'Moelleux' },
+  { key: 'humidite',     label: 'Humidité perçue' },
+  { key: 'cohesion',     label: 'Cohésion de la mie' },
+  { key: 'arriere_gout', label: 'Arrière-goût' },
+  { key: 'appreciation', label: 'Appréciation globale' },
+];
+
+let allData = [];
+let spiderChart = null;
+
+function checkPwd() {
+  const val = document.getElementById('pwd-input').value;
+  if (val === ADMIN_PWD) {
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('admin-view').style.display = 'block';
+    loadData();
+  } else {
+    document.getElementById('login-error').textContent = 'Mot de passe incorrect.';
+  }
+}
+
+function logout() {
+  document.getElementById('login-view').style.display = 'block';
+  document.getElementById('admin-view').style.display = 'none';
+  document.getElementById('pwd-input').value = '';
+}
+
+async function loadData() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/notes?select=*&order=created_at.asc`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    allData = await res.json();
+    renderAll();
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function getAvg(data, madeleine) {
+  const rows = data.filter(r => r.madeleine === madeleine);
+  if (!rows.length) return null;
+  const avg = {};
+  CRITERIA.forEach(c => {
+    avg[c.key] = rows.reduce((s, r) => s + (r[c.key] || 0), 0) / rows.length;
+  });
+  return avg;
+}
+
+function renderAll() {
+  const deguNames = [...new Set(allData.map(r => r.degustateur))];
+  document.getElementById('stat-count').textContent = deguNames.length;
+
+  const avgA = getAvg(allData, 'A');
+  const avgB = getAvg(allData, 'B');
+
+  if (avgA) {
+    const globalA = CRITERIA.reduce((s,c) => s + avgA[c.key], 0) / CRITERIA.length;
+    document.getElementById('stat-a').textContent = globalA.toFixed(1);
+  }
+  if (avgB) {
+    const globalB = CRITERIA.reduce((s,c) => s + avgB[c.key], 0) / CRITERIA.length;
+    document.getElementById('stat-b').textContent = globalB.toFixed(1);
+  }
+
+  renderAvgTable(avgA, avgB);
+  renderSpider(avgA, avgB);
+  renderDetailTable();
+}
+
+function renderAvgTable(avgA, avgB) {
+  const el = document.getElementById('avg-table-wrap');
+  if (!avgA || !avgB) { el.innerHTML = '<p class="empty">Pas encore de données.</p>'; return; }
+  let h = `<table class="avg-table"><tr><th>Critère</th><th>Madeleine A</th><th>Madeleine B</th><th>Écart A−B</th></tr>`;
+  CRITERIA.forEach(c => {
+    const a = avgA[c.key], b = avgB[c.key], diff = a - b;
+    const cls = diff > 0 ? 'diff-pos' : diff < 0 ? 'diff-neg' : '';
+    h += `<tr><td>${c.label}</td><td>${a.toFixed(1)}</td><td>${b.toFixed(1)}</td><td class="${cls}">${diff > 0 ? '+' : ''}${diff.toFixed(1)}</td></tr>`;
+  });
+  h += '</table>';
+  el.innerHTML = h;
+}
+
+function renderSpider(avgA, avgB) {
+  const labels = CRITERIA.map(c => c.label);
+  const dA = avgA ? CRITERIA.map(c => parseFloat(avgA[c.key].toFixed(1))) : Array(6).fill(0);
+  const dB = avgB ? CRITERIA.map(c => parseFloat(avgB[c.key].toFixed(1))) : Array(6).fill(0);
+
+  if (spiderChart) {
+    spiderChart.data.datasets[0].data = dA;
+    spiderChart.data.datasets[1].data = dB;
+    spiderChart.update();
+    return;
+  }
+  spiderChart = new Chart(document.getElementById('spiderChart'), {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Madeleine A', data: dA, backgroundColor: 'rgba(24,95,165,0.12)', borderColor: '#185FA5', borderWidth: 2, pointBackgroundColor: '#185FA5', pointRadius: 4 },
+        { label: 'Madeleine B', data: dB, backgroundColor: 'rgba(216,90,48,0.12)', borderColor: '#D85A30', borderWidth: 2, pointBackgroundColor: '#D85A30', pointRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { r: { min: 0, max: 10, ticks: { stepSize: 2, font: { size: 11 }, backdropColor: 'transparent' }, pointLabels: { font: { size: 12 } }, grid: { color: 'rgba(0,0,0,0.08)' }, angleLines: { color: 'rgba(0,0,0,0.08)' } } }
+    }
+  });
+}
+
+function renderDetailTable() {
+  const el = document.getElementById('detail-table');
+  if (!allData.length) { el.innerHTML = '<p class="empty">Aucune note enregistrée.</p>'; return; }
+  let h = `<table class="rt"><tr><th>Dégustateur</th><th>Madeleine</th><th>Date</th>`;
+  CRITERIA.forEach(c => h += `<th>${c.label}</th>`);
+  h += '</tr>';
+  allData.forEach(r => {
+    h += `<tr><td>${r.degustateur}</td><td>${r.madeleine}</td><td>${new Date(r.created_at).toLocaleString('fr-FR')}</td>`;
+    CRITERIA.forEach(c => h += `<td>${r[c.key] ?? '—'}</td>`);
+    h += '</tr>';
+  });
+  h += '</table>';
+  el.innerHTML = h;
+}
+
+function exportCSV() {
+  if (!allData.length) return;
+  const heads = ['Dégustateur', 'Madeleine', 'Date', ...CRITERIA.map(c => c.label)];
+  const rows = allData.map(r => [
+    r.degustateur, r.madeleine, new Date(r.created_at).toLocaleString('fr-FR'),
+    ...CRITERIA.map(c => r[c.key] ?? '')
+  ]);
+  const csv = [heads, ...rows].map(r => r.join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('\uFEFF' + csv);
+  a.download = 'resultats_madeleines.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
